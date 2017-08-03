@@ -53,7 +53,7 @@ conf = {
 }
 
 class GitGod(object):
-    def __init__(self, src_dir, branches):
+    def __init__(self, src_dir, branches, days_range=10):
         self.total_commits_by_ordinal_day = {}
         self.total_commits_by_day_of_week = {}
         self.author_commits_by_ordinal_day = {}
@@ -61,6 +61,8 @@ class GitGod(object):
         self.branches = branches
         self.src_dir = src_dir
         self.branch_commits = {}
+
+        self.days_range = days_range
 
     def get_branch_commits(self):
 
@@ -147,13 +149,17 @@ class GitGod(object):
     def print_branch_stats(self):
         #print commits for last 7 days
         todays_ordinal_date = datetime.datetime.now().toordinal()
-        for ord_day in range(todays_ordinal_date-10, todays_ordinal_date+1):
+        for ord_day in range(todays_ordinal_date-self.days_range, todays_ordinal_date+1):
             if ord_day not in self.author_commits_by_ordinal_day:
                 continue
             actual_date = datetime.datetime.fromordinal(ord_day)
             print('***** {0} ******'.format(actual_date.strftime('%Y-%m-%d')))
             for key,value in self.author_commits_by_ordinal_day[ord_day].items():
                 print('{0}: {1}'.format(key, value))
+
+    def get_all_branches_with_latest_commit_dates(self):
+        #cmd = "git branch -a -vv | while read; do echo -e $(git log -1 --format=%ci $(echo "_$REPLY" | awk '{print $2}' | perl -pe 's/\e\[?.*?[\@-~]//g') 2> /dev/null || git log -1 --format=%ci)" $REPLY"; done | sort -r | cut -d ' ' -f -1,4- | awk '{print $1, $2}'"
+        return True
 
     def debugs(self, debug_line, do_exit=True):
         print('######### OUTPUT ###########\n{0}'.format(debug_line))
@@ -165,17 +171,21 @@ _settings = {}
 def _process_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--source-dir', help='Source code dir')
+    parser.add_argument('-d', '--days', default='7', help='Number of days to print commit history for')
     parser.add_argument('-b', '--branches', default=[], nargs='+', type=str, help='Comma separated list of branches')
+
     args = parser.parse_args()
     _settings['source_dir'] = args.source_dir
     _settings['branches'] = args.branches
+    _settings['days'] = int(args.days)
 
     print('**** SETTINGS *****')
     print('Source Dir ==> {0}'.format(_settings['source_dir']))
     print('Branches ==> {0}'.format(_settings['branches']))
+    print('Days ==> {0}'.format(_settings['days']))
 
 if __name__=='__main__':
     _process_args()
-    git_god = GitGod(src_dir=_settings['source_dir'], branches=_settings['branches'])
+    git_god = GitGod(src_dir=_settings['source_dir'], branches=_settings['branches'], days_range=_settings['days'])
     git_god.process_branch('master')
 
